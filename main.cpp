@@ -1,5 +1,5 @@
 #include <iostream>
-#include <vector>
+#include <list>
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
@@ -8,7 +8,7 @@
 #include "EBook.h"
 #include "PrintedBook.h"
 
-void addBook(std::vector<Book*>& library, Book* newBook) {
+void addBook(std::list<Book*>& library, Book* newBook) {
     for (const auto& book : library) {
         if (book->getId() == newBook->getId()) {
             std::cout << "Book with ID " << newBook->getId() << " already exists." << std::endl;
@@ -20,7 +20,7 @@ void addBook(std::vector<Book*>& library, Book* newBook) {
     std::cout << "Book added: " << newBook->getTitle() << std::endl;
 }
 
-void removeBook(std::vector<Book*>& library, int bookId) {
+void removeBook(std::list<Book*>& library, int bookId) {
     for (auto it = library.begin(); it != library.end(); ++it) {
         if ((*it)->getId() == bookId) {
             std::cout << "Book removed: " << (*it)->getTitle() << std::endl;
@@ -32,7 +32,7 @@ void removeBook(std::vector<Book*>& library, int bookId) {
     std::cout << "Book ID " << bookId << " not found." << std::endl;
 }
 
-void searchBook(const std::vector<Book*>& library, const std::string& title) {
+void searchBook(const std::list<Book*>& library, const std::string& title) {
     for (const auto& book : library) {
         if (book->getTitle() == title) {
             book->display();
@@ -42,7 +42,7 @@ void searchBook(const std::vector<Book*>& library, const std::string& title) {
     std::cout << "Book with title \"" << title << "\" not found." << std::endl;
 }
 
-void saveToFile(const std::vector<Book*>& library, const std::string& filename) {
+void saveToFile(const std::list<Book*>& library, const std::string& filename) {
     std::ofstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Unable to open file " + filename);
@@ -74,7 +74,7 @@ void saveToFile(const std::vector<Book*>& library, const std::string& filename) 
     std::cout << "Library data saved to " << filename << std::endl;
 }
 
-void loadFromFile(std::vector<Book*>& library, const std::string& filename) {
+void loadFromFile(std::list<Book*>& library, const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Unable to open file " + filename);
@@ -105,7 +105,7 @@ void loadFromFile(std::vector<Book*>& library, const std::string& filename) {
     std::cout << "Library data loaded from " << filename << std::endl;
 }
 
-void updateAvailability(std::vector<Book*>& library, int bookId, bool available) {
+void updateAvailability(std::list<Book*>& library, int bookId, bool available) {
     for (auto& book : library) {
         if (book->getId() == bookId) {
             book->setAvailable(available);
@@ -117,24 +117,24 @@ void updateAvailability(std::vector<Book*>& library, int bookId, bool available)
 }
 
 // Рекурсивная функция для подсчета страниц
-int countTotalPages(const std::vector<Book*>& library, int index = 0) {
-    if (index == library.size()) {
+int countTotalPages(const std::list<Book*>& library, std::list<Book*>::const_iterator it) {
+    if (it == library.end()) {
         return 0;
     }
-    PrintedBook* printedBook = dynamic_cast<PrintedBook*>(library[index]);
+    PrintedBook* printedBook = dynamic_cast<PrintedBook*>(*it);
     int pages = printedBook ? printedBook->getPages() : 0;
-    return pages + countTotalPages(library, index + 1);
+    return pages + countTotalPages(library, std::next(it));
 }
 
 // Функция сортировки книг по названию
-void sortBooksByTitle(std::vector<Book*>& library) {
-    std::sort(library.begin(), library.end(), [](Book* a, Book* b) {
+void sortBooksByTitle(std::list<Book*>& library) {
+    library.sort([](Book* a, Book* b) {
         return a->getTitle() < b->getTitle();
     });
 }
 
 int main() {
-    std::vector<Book*> library;
+    std::list<Book*> library;
 
     try {
         EBook* ebook = new EBook("1984", "George Orwell", 2, true, "EPUB", 1.5);
@@ -143,8 +143,8 @@ int main() {
         addBook(library, ebook);
         addBook(library, printedBook);
 
-        library[0]->display();
-        library[1]->display();
+        library.front()->display();
+        library.back()->display();
 
         searchBook(library, "1984");
         searchBook(library, "Unknown Book");
@@ -153,12 +153,12 @@ int main() {
         library.clear();
         loadFromFile(library, "library.txt");
         if (!library.empty()) {
-            library[0]->display();
+            library.front()->display();
         }
 
         updateAvailability(library, 2, false);
 
-        std::cout << "Total pages in printed books: " << countTotalPages(library) << std::endl;
+        std::cout << "Total pages in printed books: " << countTotalPages(library, library.begin()) << std::endl;
 
         sortBooksByTitle(library);
         std::cout << "Books sorted by title:" << std::endl;
